@@ -25,3 +25,9 @@ or just give them as parameters in the terminal
 ```
 roslaunch livox_msg_pointcloud livox_converter.launch input_topic:=/custom/input_topic  output_topic:=/custom/output_topic  scan_merge_count:=1
 ```
+Parameters explained:
+```
+input_topic # the original Livox LiDAR point cloud in custom msg
+output_topoic # the converted LiDAR point cloud in PCL pointcloud format
+scan_merge_count #the original point cloud is in high frequency but very sparse. We can choose to low the frequency to get dense point cloud.
+```

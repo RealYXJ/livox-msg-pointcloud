@@ -15,6 +15,7 @@ catkin_package()
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  include
 )
 
 add_executable(livox_msg_pointcloud_node src/livox_msg_pointcloud_node.cpp)

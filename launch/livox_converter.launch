@@ -1,9 +1,11 @@
 <launch>
     <arg name="input_topic" default="/avia/livox/lidar" />
     <arg name="output_topic" default="/avia_points" />
+	<arg name="scan_merge_count" default="1"/>
 
     <node name="livox_msg_pointcloud_node" pkg="livox_msg_pointcloud" type="livox_msg_pointcloud_node" output="screen">
         <param name="input_topic" value="$(arg input_topic)" />
         <param name="output_topic" value="$(arg output_topic)" />
+		<param name="scan_merge_count" value="$(arg scan_merge_count)"/>
     </node>
 </launch>

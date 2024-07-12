@@ -1,7 +1,7 @@
 # livox-msg-pointcloud
 This is a ROS package (tested in ROS noetic) to convert Livox custom message to pcl pointcloud. The conversion include two types:
 1. Real-time conversion with a C++ ROS wrapper
-2. A Python script to convert the topics inside a rosbag by postprocessing
+2. A Python script (`rosbag_msg_converter.py`) to convert the topics inside a rosbag by postprocessing
 
 
 ```
@@ -42,9 +42,12 @@ scan_merge_count #the original point cloud is in high frequency but very sparse.
 ## Conversion by Post-Processing
 The script needs various libaries:
 ```
-pip install open3d numpy 
+pip install open3d numpy tqdm
 ```
 And here is how to run the script.
 ```
 python convert_rosbag.py input.bag output.bag 2 /topic1 /topic2
 ```
+
+## TODO
+- [ ] The python script is too slow now

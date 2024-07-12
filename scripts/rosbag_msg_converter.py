@@ -10,6 +10,7 @@ import std_msgs.msg
 import logging
 import time
 import tracemalloc
+from tqdm import tqdm
 
 def setup_logging():
     logging.basicConfig(level=logging.INFO,
@@ -73,6 +74,7 @@ if __name__ == "__main__":
     parser.add_argument('input_bag', help='Input ROS bag file')
     parser.add_argument('output_bag', help='Output ROS bag file')
     parser.add_argument('scan_merge_count', type=int, help='Number of messages to merge')
+    parser.add_argument('save_interval', type=int, help='Number of processed messages to save periodically')
     parser.add_argument('topics', nargs='*', help='Specific topics to process. If none, process all topics of the specified type.')
     args = parser.parse_args()
 
@@ -83,6 +85,7 @@ if __name__ == "__main__":
     input_bag = args.input_bag
     output_bag = args.output_bag
     scan_merge_count = args.scan_merge_count
+    save_interval = args.save_interval
     topics_to_process = args.topics if args.topics else None
     target_topic_type = 'livox_ros_driver/CustomMsg'
     livox_data = []
@@ -93,13 +96,17 @@ if __name__ == "__main__":
     try:
         logging.info(f"Reading from {input_bag}")
 
-        with rosbag.Bag(input_bag, 'r') as inbag:
+        with rosbag.Bag(input_bag, 'r') as inbag, rosbag.Bag(output_bag, 'w') as outbag:
             if not topics_to_process:
                 topics_to_process = [
                     topic for topic, info in inbag.get_type_and_topic_info()[1].items() if info.msg_type == target_topic_type
                 ]
 
+            total_messages = inbag.get_message_count(topic_filters=topics_to_process)
+            pbar = tqdm(total=total_messages, desc='Processing messages')
+
             for topic, msg, t in inbag.read_messages():
+                pbar.update(1)
                 if topic in topics_to_process and inbag.get_type_and_topic_info()[1][topic].msg_type == target_topic_type:
                     livox_data.append(msg)
                     if len(livox_data) >= scan_merge_count:
@@ -109,15 +116,30 @@ if __name__ == "__main__":
                         processed_messages.append((topic, point_cloud2_msg, t))
                         # logging.info(f"Processed and prepared merged point cloud for topic {topic} at time {t}")
                         log_memory_usage()
+
+                        # Save periodically
+                        if len(processed_messages) >= save_interval:
+                            logging.info(f"Saving {len(processed_messages)} processed messages to {output_bag}")
+                            for p_topic, p_msg, p_t in processed_messages:
+                                outbag.write(p_topic, p_msg, p_t)
+                            processed_messages = []
                 else:
                     processed_messages.append((topic, msg, t))
 
-        logging.info(f"Writing to {output_bag}")
+                    # Save periodically
+                    if len(processed_messages) >= save_interval:
+                        logging.info(f"Saving {len(processed_messages)} processed messages to {output_bag}")
+                        for p_topic, p_msg, p_t in processed_messages:
+                            outbag.write(p_topic, p_msg, p_t)
+                        processed_messages = []
 
-        with rosbag.Bag(output_bag, 'w') as outbag:
-            for topic, msg, t in processed_messages:
-                outbag.write(topic, msg, t)
-                log_memory_usage()
+            # Final save for remaining messages
+            if processed_messages:
+                logging.info(f"Final save of {len(processed_messages)} remaining processed messages to {output_bag}")
+                for p_topic, p_msg, p_t in processed_messages:
+                    outbag.write(p_topic, p_msg, p_t)
+
+            pbar.close()
 
         logging.info("Finished processing the rosbag.")
     except KeyboardInterrupt:
